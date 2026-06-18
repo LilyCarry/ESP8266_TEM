@@ -51,42 +51,39 @@ plt.title('温度随时间的变化')
 plt.show()'''
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 
-path = './csvs/'
-df = pd.read_csv(path + '06_15.csv', on_bad_lines='skip')  # 跳过损坏行
+path = './csvs/combined.csv'
+df = pd.read_csv(path, on_bad_lines='skip')
 
-# 1. 清理数值列，确保数据格式正确
+# 清理温度列
 df['Temperature'] = pd.to_numeric(df['Temperature'], errors='coerce')
-df['Humidity'] = pd.to_numeric(df['Humidity'], errors='coerce')
-df.dropna(subset=['Temperature', 'Humidity'], inplace=True)
+df.dropna(subset=['Temperature'], inplace=True)
 
-# 2. 确保 Time 列长度足够进行“分”的切片（至少13位）
-df = df[df['Time'].str.len() >= 13].copy()
+# 解析时间（兼容带时区）
+df['Time'] = pd.to_datetime(df['Time'], errors='coerce')
+df.dropna(subset=['Time'], inplace=True)
+df['Time'] = df['Time'].dt.tz_convert('Asia/Shanghai')
 
-# 3. 提取“时”与“分”，并拼接为“时:分”格式（例如 "12:30"）
-df['时分'] = df['Time'].str.slice(9, 11) + ':' + df['Time'].str.slice(11, 13)
+# 按日期分组（只取日期部分）
+df['date'] = df['Time'].dt.normalize()   # 所有时间归到当天0点
+daily_avg = df.groupby('date')['Temperature'].mean()
 
-# 4. 按照“时分”分组，并计算温度平均值
-# 此时 groupby 会自动按照时间先后顺序对“时分”进行排序
-grouped = df.groupby('时分')['Temperature'].mean()
+# 绘图
+plt.rcParams['font.sans-serif'] = ['SimHei']
+plt.rcParams['axes.unicode_minus'] = False
 
-# 5. 绘图设置
-plt.rcParams['font.sans-serif'] = ['SimHei']  # 用黑体显示中文
-plt.rcParams['axes.unicode_minus'] = False    # 解决负号显示异常
+fig, ax = plt.subplots(figsize=(12, 5))
+ax.plot(daily_avg.index, daily_avg.values, marker='o', markersize=4, linestyle='-')
 
-plt.figure(figsize=(12, 6))  # 适当加宽画布，便于展示更多时间点
-plt.plot(grouped.index, grouped.values, marker='o', markersize=2, linestyle='-', linewidth=1.5)
+# 横轴显示为 "月-日"（例如 06-18），更清晰
+ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
+# 自动旋转
+plt.xticks(rotation=45)
 
-# 6. 优化横坐标轴刻度显示（防止因数据点太多导致标签挤成黑块）
-# 默认每隔 15 个时间点显示一个刻度，你可以根据数据量大小调整这里的数值
-step = max(1, len(grouped) // 30)  
-plt.xticks(grouped.index[::step], rotation=45)
-
-# 7. 添加图表辅助信息
-plt.xlabel('时间 (时:分)')
-plt.ylabel('温度 (°C)')
-plt.title('温度随时间的变化（按分钟聚合）')
-plt.grid(True, linestyle='--', alpha=0.5)  # 添加网格线方便阅读
-
-plt.tight_layout()  # 自动调整布局，防止底部时间标签被裁剪
+plt.xlabel('日期')
+plt.ylabel('日均温度 (°C)')
+plt.title('每日平均温度变化')
+plt.grid(True, linestyle='--', alpha=0.6)
+plt.tight_layout()
 plt.show()
