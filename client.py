@@ -10,8 +10,8 @@ from machine import Pin
 machine.freq(160000000)
 
 # ====================== 用户配置区 ======================
-WIFI_SSID = "Carry"
-WIFI_PWD  = "carry123"
+WIFI_SSID = "ESP"
+WIFI_PWD  = "esp11111"
 
 # 你的云端或局域网接收地址（请根据实际需要修改）
 TARGET_URLS = [
