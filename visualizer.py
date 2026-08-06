@@ -72,10 +72,21 @@ def get_data():
         
     df_filtered = df_all.loc[mask]
     
-    # Downsample to 5 minutes
+    # Downsample dynamically based on date range
     if not df_filtered.empty:
-        # Resample numeric columns
-        df_resampled = df_filtered[['Temperature', 'Humidity']].resample('5min').mean().dropna()
+        days = (df_filtered.index.max() - df_filtered.index.min()).days
+        if days > 14:
+            rule = '5min'
+        elif days > 3:
+            rule = '1min'
+        else:
+            rule = None # raw data for <= 3 days
+
+        if rule:
+            df_resampled = df_filtered[['Temperature', 'Humidity']].resample(rule).mean().dropna()
+        else:
+            df_resampled = df_filtered[['Temperature', 'Humidity']].dropna()
+            
         df_resampled = df_resampled.round(1)
         
         # Format for output
