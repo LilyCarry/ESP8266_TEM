@@ -307,7 +307,11 @@
 
             <!-- Time Series Chart -->
             <div class="bento-card chart-full delay-3">
-                <h2>温湿度波动趋势图 <div id="tsLoader" class="spinner" style="display:none; width:16px; height:16px; border-width:1.5px; margin:0 0 0 8px;"></div><span id="debugLOD" style="font-size:12px; color:#A0A0A0; font-weight:normal; margin-left:12px; font-family:monospace;"></span></h2>
+                <h2 style="display: flex; align-items: center;">
+                    温湿度波动趋势图 
+                    <div id="tsLoader" class="spinner" style="display:none; width:16px; height:16px; border-width:1.5px; margin:0 0 0 8px;"></div>
+                    <span id="debugZoom" style="font-size: 0.7rem; color: var(--text-muted); border: 1px solid var(--border-color); padding: 2px 8px; border-radius: 4px; margin-left: auto; font-family: monospace; background: var(--bg-canvas);">Span: --</span>
+                </h2>
                 <div id="timeSeriesChart" class="chart-container"></div>
             </div>
 
@@ -416,6 +420,14 @@
         let currentGlobalEnd = null;
 
         async function loadData(start, end, isZoomUpdate = false) {
+            // Calculate and show debug span
+            try {
+                const startMs = new Date(start.includes(':') ? start.replace(' ', 'T') : start).getTime();
+                const endMs = new Date(end.includes(':') ? end.replace(' ', 'T') : end).getTime();
+                const spanDays = (endMs - startMs) / (1000 * 60 * 60 * 24);
+                document.getElementById('debugZoom').innerText = `Span: ${spanDays.toFixed(2)}d`;
+            } catch (e) {}
+
             if (!isZoomUpdate) {
                 // If it's a date string like YYYY-MM-DD, append time. If it's already a full timestamp from zoom, it'll still work or we don't hit this.
                 currentGlobalStart = start.includes(':') ? start : start + ' 00:00:00';
@@ -426,13 +438,7 @@
             }
             try {
                 const res = await fetch(`/api/data?start=${start}&end=${end}`);
-                const payload = await res.json();
-                const data = payload.data || payload;
-                
-                const debugLabel = document.getElementById('debugLOD');
-                if (debugLabel && payload.span_days !== undefined) {
-                    debugLabel.innerText = `[Debug LOD] Span: ${payload.span_days}d | Rule: ${payload.rule}`;
-                }
+                const data = await res.json();
                 
                 if (data.length > 0) {
                     if (!isZoomUpdate) {

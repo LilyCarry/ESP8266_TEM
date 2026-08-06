@@ -126,12 +126,8 @@ def get_data():
             })
             last_time = time
             
-        return jsonify({
-            'span_days': round(days, 2),
-            'rule': rule if rule else 'Raw (15s)',
-            'data': result
-        })
-    return jsonify({'span_days': 0, 'rule': 'None', 'data': []})
+        return jsonify(result)
+    return jsonify([])
 
 @app.route('/api/daily_stats')
 def daily_stats():
