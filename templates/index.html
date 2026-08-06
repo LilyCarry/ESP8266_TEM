@@ -307,7 +307,7 @@
 
             <!-- Time Series Chart -->
             <div class="bento-card chart-full delay-3">
-                <h2>温湿度波动趋势图 <div id="tsLoader" class="spinner" style="display:none; width:16px; height:16px; border-width:1.5px; margin:0 0 0 8px;"></div></h2>
+                <h2>温湿度波动趋势图 <div id="tsLoader" class="spinner" style="display:none; width:16px; height:16px; border-width:1.5px; margin:0 0 0 8px;"></div><span id="debugLOD" style="font-size:12px; color:#A0A0A0; font-weight:normal; margin-left:12px; font-family:monospace;"></span></h2>
                 <div id="timeSeriesChart" class="chart-container"></div>
             </div>
 
@@ -426,7 +426,13 @@
             }
             try {
                 const res = await fetch(`/api/data?start=${start}&end=${end}`);
-                const data = await res.json();
+                const payload = await res.json();
+                const data = payload.data || payload;
+                
+                const debugLabel = document.getElementById('debugLOD');
+                if (debugLabel && payload.span_days !== undefined) {
+                    debugLabel.innerText = `[Debug LOD] Span: ${payload.span_days}d | Rule: ${payload.rule}`;
+                }
                 
                 if (data.length > 0) {
                     if (!isZoomUpdate) {
