@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ESP8266 温湿度监控面板</title>
     <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <!-- Flatpickr for Date Selection -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
@@ -29,14 +29,17 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Outfit', sans-serif;
         }
 
         body {
             background-color: var(--bg-color);
             background-image: 
-                radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.15), transparent 25%),
-                radial-gradient(circle at 85% 30%, rgba(239, 68, 68, 0.15), transparent 25%);
+                radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.25), transparent 30%),
+                radial-gradient(circle at 85% 30%, rgba(239, 68, 68, 0.25), transparent 30%),
+                radial-gradient(circle at 50% 80%, rgba(167, 139, 250, 0.15), transparent 40%);
+            background-size: 150% 150%;
+            animation: gradientBG 15s ease infinite;
             color: var(--text-main);
             min-height: 100vh;
             padding: 2rem;
@@ -52,15 +55,17 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 2rem;
+            margin-bottom: 2.5rem;
         }
 
         h1 {
-            font-size: 2rem;
+            font-size: 2.2rem;
             font-weight: 700;
-            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            background: linear-gradient(to right, #60a5fa, #a78bfa, #f472b6);
+            background-size: 200% auto;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            animation: textShine 4s linear infinite;
         }
 
         .controls {
@@ -73,47 +78,64 @@
             background: rgba(15, 23, 42, 0.6);
             border: 1px solid var(--card-border);
             color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            font-size: 0.9rem;
+            padding: 0.6rem 1.2rem;
+            border-radius: 12px;
+            font-size: 0.95rem;
             outline: none;
             width: 250px;
+            transition: all 0.3s ease;
+        }
+        
+        .date-picker:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
         }
 
         .glass-card {
-            background: var(--card-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border: 1px solid var(--card-border);
-            border-radius: 16px;
+            border-top: 1px solid rgba(255,255,255,0.15);
+            border-left: 1px solid rgba(255,255,255,0.05);
+            border-radius: 20px;
             padding: 1.5rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: slideUpFade 0.6s ease-out forwards;
+            opacity: 0;
         }
         
+        .glass-card:nth-child(1) { animation-delay: 0.1s; }
+        .glass-card:nth-child(2) { animation-delay: 0.2s; }
+        .glass-card:nth-child(3) { animation-delay: 0.3s; }
+        .glass-card:nth-child(4) { animation-delay: 0.4s; }
+        
         .glass-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.7);
         }
 
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 1.5rem;
-            margin-bottom: 2rem;
+            margin-bottom: 2.5rem;
         }
 
         .stat-box h3 {
-            font-size: 0.875rem;
+            font-size: 0.85rem;
             color: var(--text-muted);
             margin-bottom: 0.5rem;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.08em;
+            font-weight: 600;
         }
 
         .stat-box .value {
-            font-size: 2rem;
-            font-weight: 600;
+            font-size: 2.2rem;
+            font-weight: 700;
+            text-shadow: 0 0 20px rgba(255,255,255,0.1);
         }
 
         .charts-grid {
@@ -165,6 +187,20 @@
         }
 
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        @keyframes slideUpFade {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes textShine {
+            0% { background-position: 0% center; }
+            100% { background-position: 200% center; }
+        }
 
     </style>
 </head>
