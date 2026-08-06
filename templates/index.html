@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP8266 Monitoring Dashboard</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Flatpickr for Date Selection -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+    <!-- ECharts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-red: #ef4444;
+            --accent-green: #10b981;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.15), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(239, 68, 68, 0.15), transparent 25%);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 2rem;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .date-picker {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--card-border);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            outline: none;
+            width: 250px;
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .glass-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-box h3 {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-box .value {
+            font-size: 2rem;
+            font-weight: 600;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+
+        .chart-row-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 1024px) {
+            .chart-row-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 400px;
+        }
+
+        /* Loading Spinner */
+        #loader {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: white;
+            font-size: 1.5rem;
+            display: none;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.1);
+            border-left-color: var(--accent-blue);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-right: 15px;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    </style>
+</head>
+<body>
+
+    <div id="loader">
+        <div class="spinner"></div> Loading Data...
+    </div>
+
+    <div class="container">
+        <header>
+            <h1>🌡️ ESP8266 Monitor</h1>
+            <div class="controls">
+                <input type="text" id="dateRange" class="date-picker" placeholder="Select Date Range...">
+            </div>
+        </header>
+
+        <div class="stats-grid">
+            <div class="glass-card stat-box">
+                <h3>Latest Temperature</h3>
+                <div class="value" id="latestTemp" style="color: #f87171;">-- °C</div>
+            </div>
+            <div class="glass-card stat-box">
+                <h3>Latest Humidity</h3>
+                <div class="value" id="latestHum" style="color: #60a5fa;">-- %</div>
+            </div>
+            <div class="glass-card stat-box">
+                <h3>Avg Temp (Selected)</h3>
+                <div class="value" id="avgTemp">-- °C</div>
+            </div>
+            <div class="glass-card stat-box">
+                <h3>Avg Hum (Selected)</h3>
+                <div class="value" id="avgHum">-- %</div>
+            </div>
+        </div>
+
+        <div class="charts-grid">
+            <!-- Time Series Chart -->
+            <div class="glass-card">
+                <h2 style="margin-bottom: 1rem; font-size: 1.2rem;">Temperature & Humidity Trend</h2>
+                <div id="timeSeriesChart" class="chart-container"></div>
+            </div>
+
+            <div class="chart-row-2">
+                <!-- Daily Stats Bar Chart -->
+                <div class="glass-card">
+                    <h2 style="margin-bottom: 1rem; font-size: 1.2rem;">Daily Temperature Range</h2>
+                    <div id="dailyStatsChart" class="chart-container"></div>
+                </div>
+
+                <!-- Heatmap -->
+                <div class="glass-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h2 style="font-size: 1.2rem;">Hourly Heatmap</h2>
+                        <select id="heatmapType" style="background: rgba(255,255,255,0.1); color: white; border: none; padding: 5px 10px; border-radius: 5px; outline: none;">
+                            <option value="temperature">Temperature</option>
+                            <option value="humidity">Humidity</option>
+                        </select>
+                    </div>
+                    <div id="heatmapChart" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize ECharts instances
+        const timeSeriesChart = echarts.init(document.getElementById('timeSeriesChart'), 'dark', {background: 'transparent'});
+        const dailyStatsChart = echarts.init(document.getElementById('dailyStatsChart'), 'dark', {background: 'transparent'});
+        const heatmapChart = echarts.init(document.getElementById('heatmapChart'), 'dark', {background: 'transparent'});
+
+        let allDates = [];
+
+        // Common Chart options
+        const commonOptions = {
+            tooltip: { trigger: 'axis', backgroundColor: 'rgba(30, 41, 59, 0.9)', borderColor: 'rgba(255,255,255,0.1)', textStyle: {color: '#fff'} },
+            grid: { top: 40, right: 30, bottom: 40, left: 50, containLabel: true }
+        };
+
+        // Show/Hide loader
+        const toggleLoader = (show) => {
+            document.getElementById('loader').style.display = show ? 'flex' : 'none';
+        };
+
+        // Fetch initial config (available dates)
+        async function init() {
+            try {
+                const res = await fetch('/api/dates');
+                allDates = await res.json();
+                
+                if (allDates.length > 0) {
+                    const latestDate = allDates[allDates.length - 1];
+                    const defaultStart = allDates.length > 7 ? allDates[allDates.length - 7] : allDates[0];
+                    
+                    // Init Flatpickr
+                    flatpickr("#dateRange", {
+                        mode: "range",
+                        minDate: allDates[0],
+                        maxDate: latestDate,
+                        defaultDate: [defaultStart, latestDate],
+                        onChange: function(selectedDates, dateStr, instance) {
+                            if (selectedDates.length === 2) {
+                                const start = echarts.format.formatTime('yyyy-MM-dd', selectedDates[0]);
+                                const end = echarts.format.formatTime('yyyy-MM-dd', selectedDates[1]);
+                                loadData(start, end);
+                            }
+                        }
+                    });
+
+                    // Load initial data
+                    await Promise.all([
+                        loadData(defaultStart, latestDate),
+                        loadDailyStats(),
+                        loadHeatmap('temperature')
+                    ]);
+                }
+            } catch (e) {
+                console.error("Failed to init", e);
+            }
+            
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                timeSeriesChart.resize();
+                dailyStatsChart.resize();
+                heatmapChart.resize();
+            });
+        }
+
+        // Load Time Series Data
+        async function loadData(start, end) {
+            toggleLoader(true);
+            try {
+                const res = await fetch(`/api/data?start=${start}&end=${end}`);
+                const data = await res.json();
+                
+                if (data.length > 0) {
+                    // Update stats
+                    const latest = data[data.length - 1];
+                    document.getElementById('latestTemp').innerText = `${latest.temperature.toFixed(1)} °C`;
+                    document.getElementById('latestHum').innerText = `${latest.humidity.toFixed(1)} %`;
+                    
+                    const avgTemp = data.reduce((acc, val) => acc + val.temperature, 0) / data.length;
+                    const avgHum = data.reduce((acc, val) => acc + val.humidity, 0) / data.length;
+                    document.getElementById('avgTemp').innerText = `${avgTemp.toFixed(1)} °C`;
+                    document.getElementById('avgHum').innerText = `${avgHum.toFixed(1)} %`;
+
+                    // Update Chart
+                    const times = data.map(d => d.time);
+                    const temps = data.map(d => d.temperature);
+                    const hums = data.map(d => d.humidity);
+
+                    timeSeriesChart.setOption({
+                        ...commonOptions,
+                        dataZoom: [
+                            { type: 'inside', start: 0, end: 100 },
+                            { type: 'slider', start: 0, end: 100, bottom: 0, textStyle: {color: '#fff'} }
+                        ],
+                        legend: { data: ['Temperature', 'Humidity'], textStyle: {color: '#fff'} },
+                        xAxis: { type: 'category', data: times, boundaryGap: false },
+                        yAxis: [
+                            { type: 'value', name: 'Temp (°C)', splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } } },
+                            { type: 'value', name: 'Humidity (%)', splitLine: { show: false } }
+                        ],
+                        series: [
+                            {
+                                name: 'Temperature', type: 'line', data: temps, yAxisIndex: 0,
+                                itemStyle: { color: '#f87171' },
+                                lineStyle: { width: 2 },
+                                areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{offset: 0, color: 'rgba(248, 113, 113, 0.3)'}, {offset: 1, color: 'rgba(248, 113, 113, 0)'}]) },
+                                showSymbol: false,
+                                smooth: true
+                            },
+                            {
+                                name: 'Humidity', type: 'line', data: hums, yAxisIndex: 1,
+                                itemStyle: { color: '#60a5fa' },
+                                lineStyle: { width: 2 },
+                                showSymbol: false,
+                                smooth: true
+                            }
+                        ]
+                    });
+                }
+            } catch (e) {
+                console.error(e);
+            }
+            toggleLoader(false);
+        }
+
+        // Load Daily Stats
+        async function loadDailyStats() {
+            try {
+                const res = await fetch('/api/daily_stats');
+                const data = await res.json();
+                
+                const dates = data.map(d => d.Date);
+                const maxTemps = data.map(d => d.temp_max);
+                const minTemps = data.map(d => d.temp_min);
+                const avgTemps = data.map(d => d.temp_avg);
+
+                dailyStatsChart.setOption({
+                    ...commonOptions,
+                    legend: { data: ['Max Temp', 'Min Temp', 'Avg Temp'], textStyle: {color: '#fff'} },
+                    dataZoom: [{ type: 'inside' }, { type: 'slider', bottom: 0 }],
+                    xAxis: { type: 'category', data: dates },
+                    yAxis: { type: 'value', scale: true, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } } },
+                    series: [
+                        { name: 'Max Temp', type: 'line', data: maxTemps, itemStyle: {color: '#ef4444'}, smooth: true },
+                        { name: 'Min Temp', type: 'line', data: minTemps, itemStyle: {color: '#3b82f6'}, smooth: true },
+                        { name: 'Avg Temp', type: 'bar', data: avgTemps, itemStyle: {color: 'rgba(167, 139, 250, 0.6)'}, barMaxWidth: 20 }
+                    ]
+                });
+            } catch(e) { console.error(e); }
+        }
+
+        // Load Heatmap
+        async function loadHeatmap(type) {
+            try {
+                const res = await fetch(`/api/heatmap?type=${type}`);
+                const resData = await res.json();
+                
+                // data format: { dates: [], hours: [], data: [{x, y, v}] }
+                // ECharts matrix format: [[x_index, y_index, value]]
+                const chartData = resData.data.map(item => {
+                    return [
+                        resData.dates.indexOf(item.x),
+                        resData.hours.indexOf(item.y),
+                        item.v
+                    ];
+                });
+
+                const colorPalette = type === 'temperature' 
+                    ? ['#313695', '#4575b4', '#74add1', '#abd9e9', '#e0f3f8', '#ffffbf', '#fee090', '#fdae61', '#f46d43', '#d73027', '#a50026']
+                    : ['#f7fbff', '#deebf7', '#c6dbef', '#9ecae1', '#6baed6', '#4292c6', '#2171b5', '#08519c', '#08306b'];
+
+                heatmapChart.setOption({
+                    tooltip: { position: 'top' },
+                    grid: { top: 30, right: 20, bottom: 60, left: 50 },
+                    xAxis: { type: 'category', data: resData.dates, splitArea: { show: true } },
+                    yAxis: { type: 'category', data: resData.hours.map(h => `${h}:00`), splitArea: { show: true } },
+                    visualMap: {
+                        min: Math.min(...chartData.map(d => d[2])),
+                        max: Math.max(...chartData.map(d => d[2])),
+                        calculable: true,
+                        orient: 'horizontal',
+                        left: 'center',
+                        bottom: 0,
+                        inRange: { color: colorPalette },
+                        textStyle: { color: '#fff' }
+                    },
+                    series: [{
+                        name: type,
+                        type: 'heatmap',
+                        data: chartData,
+                        label: { show: false },
+                        emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0, 0, 0, 0.5)' } }
+                    }]
+                });
+            } catch(e) { console.error(e); }
+        }
+
+        // Heatmap type listener
+        document.getElementById('heatmapType').addEventListener('change', (e) => {
+            loadHeatmap(e.target.value);
+        });
+
+        // Run
+        init();
+
+    </script>
+</body>
+</html>
