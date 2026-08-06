@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ESP8266 Monitoring Dashboard</title>
+    <title>ESP8266 温湿度监控面板</title>
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <!-- Flatpickr for Date Selection -->
@@ -171,32 +171,32 @@
 <body>
 
     <div id="loader">
-        <div class="spinner"></div> Loading Data...
+        <div class="spinner"></div> 加载数据中...
     </div>
 
     <div class="container">
         <header>
-            <h1>🌡️ ESP8266 Monitor</h1>
+            <h1>🌡️ ESP8266 监控面板</h1>
             <div class="controls">
-                <input type="text" id="dateRange" class="date-picker" placeholder="Select Date Range...">
+                <input type="text" id="dateRange" class="date-picker" placeholder="选择日期范围...">
             </div>
         </header>
 
         <div class="stats-grid">
             <div class="glass-card stat-box">
-                <h3>Latest Temperature</h3>
+                <h3>最新温度</h3>
                 <div class="value" id="latestTemp" style="color: #f87171;">-- °C</div>
             </div>
             <div class="glass-card stat-box">
-                <h3>Latest Humidity</h3>
+                <h3>最新湿度</h3>
                 <div class="value" id="latestHum" style="color: #60a5fa;">-- %</div>
             </div>
             <div class="glass-card stat-box">
-                <h3>Avg Temp (Selected)</h3>
+                <h3>平均温度 (所选范围)</h3>
                 <div class="value" id="avgTemp">-- °C</div>
             </div>
             <div class="glass-card stat-box">
-                <h3>Avg Hum (Selected)</h3>
+                <h3>平均湿度 (所选范围)</h3>
                 <div class="value" id="avgHum">-- %</div>
             </div>
         </div>
@@ -204,24 +204,24 @@
         <div class="charts-grid">
             <!-- Time Series Chart -->
             <div class="glass-card">
-                <h2 style="margin-bottom: 1rem; font-size: 1.2rem;">Temperature & Humidity Trend</h2>
+                <h2 style="margin-bottom: 1rem; font-size: 1.2rem;">温湿度趋势图</h2>
                 <div id="timeSeriesChart" class="chart-container"></div>
             </div>
 
             <div class="chart-row-2">
                 <!-- Daily Stats Bar Chart -->
                 <div class="glass-card">
-                    <h2 style="margin-bottom: 1rem; font-size: 1.2rem;">Daily Temperature Range</h2>
+                    <h2 style="margin-bottom: 1rem; font-size: 1.2rem;">每日温度范围</h2>
                     <div id="dailyStatsChart" class="chart-container"></div>
                 </div>
 
                 <!-- Heatmap -->
                 <div class="glass-card">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <h2 style="font-size: 1.2rem;">Hourly Heatmap</h2>
+                        <h2 style="font-size: 1.2rem;">小时级热力图</h2>
                         <select id="heatmapType" style="background: rgba(255,255,255,0.1); color: white; border: none; padding: 5px 10px; border-radius: 5px; outline: none;">
-                            <option value="temperature">Temperature</option>
-                            <option value="humidity">Humidity</option>
+                            <option value="temperature">温度</option>
+                            <option value="humidity">湿度</option>
                         </select>
                     </div>
                     <div id="heatmapChart" class="chart-container"></div>
@@ -322,15 +322,15 @@
                             { type: 'inside', start: 0, end: 100 },
                             { type: 'slider', start: 0, end: 100, bottom: 0, textStyle: {color: '#fff'} }
                         ],
-                        legend: { data: ['Temperature', 'Humidity'], textStyle: {color: '#fff'} },
+                        legend: { data: ['温度', '湿度'], textStyle: {color: '#fff'} },
                         xAxis: { type: 'category', data: times, boundaryGap: false },
                         yAxis: [
-                            { type: 'value', name: 'Temp (°C)', splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } } },
-                            { type: 'value', name: 'Humidity (%)', splitLine: { show: false } }
+                            { type: 'value', name: '温度 (°C)', splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } } },
+                            { type: 'value', name: '湿度 (%)', splitLine: { show: false } }
                         ],
                         series: [
                             {
-                                name: 'Temperature', type: 'line', data: temps, yAxisIndex: 0,
+                                name: '温度', type: 'line', data: temps, yAxisIndex: 0,
                                 itemStyle: { color: '#f87171' },
                                 lineStyle: { width: 2 },
                                 areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{offset: 0, color: 'rgba(248, 113, 113, 0.3)'}, {offset: 1, color: 'rgba(248, 113, 113, 0)'}]) },
@@ -338,7 +338,7 @@
                                 smooth: true
                             },
                             {
-                                name: 'Humidity', type: 'line', data: hums, yAxisIndex: 1,
+                                name: '湿度', type: 'line', data: hums, yAxisIndex: 1,
                                 itemStyle: { color: '#60a5fa' },
                                 lineStyle: { width: 2 },
                                 showSymbol: false,
@@ -366,14 +366,14 @@
 
                 dailyStatsChart.setOption({
                     ...commonOptions,
-                    legend: { data: ['Max Temp', 'Min Temp', 'Avg Temp'], textStyle: {color: '#fff'} },
+                    legend: { data: ['最高温度', '最低温度', '平均温度'], textStyle: {color: '#fff'} },
                     dataZoom: [{ type: 'inside' }, { type: 'slider', bottom: 0 }],
                     xAxis: { type: 'category', data: dates },
                     yAxis: { type: 'value', scale: true, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } } },
                     series: [
-                        { name: 'Max Temp', type: 'line', data: maxTemps, itemStyle: {color: '#ef4444'}, smooth: true },
-                        { name: 'Min Temp', type: 'line', data: minTemps, itemStyle: {color: '#3b82f6'}, smooth: true },
-                        { name: 'Avg Temp', type: 'bar', data: avgTemps, itemStyle: {color: 'rgba(167, 139, 250, 0.6)'}, barMaxWidth: 20 }
+                        { name: '最高温度', type: 'line', data: maxTemps, itemStyle: {color: '#ef4444'}, smooth: true },
+                        { name: '最低温度', type: 'line', data: minTemps, itemStyle: {color: '#3b82f6'}, smooth: true },
+                        { name: '平均温度', type: 'bar', data: avgTemps, itemStyle: {color: 'rgba(167, 139, 250, 0.6)'}, barMaxWidth: 20 }
                     ]
                 });
             } catch(e) { console.error(e); }
@@ -415,7 +415,7 @@
                         textStyle: { color: '#fff' }
                     },
                     series: [{
-                        name: type,
+                        name: type === 'temperature' ? '温度' : '湿度',
                         type: 'heatmap',
                         data: chartData,
                         label: { show: false },
