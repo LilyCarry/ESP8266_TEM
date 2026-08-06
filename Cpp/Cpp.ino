@@ -1,20 +1,15 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include <DHT.h>
-#include <IRremoteESP8266.h>
-#include <IRsend.h>
-#include <ir_Mitsubishi.h> // 引入三菱空调协议库
 
 // ==================== 硬件引脚定义 ====================
-#define DHTPIN 4          // DHT22 数据脚接 GPIO4 (D2 引脚)
+#define DHTPIN 14         // DHT22 数据脚接 GPIO14 (对应 D5 引脚)
 #define DHTTYPE DHT22     
 #define LED_PIN 2         // 板载蓝灯接 GPIO2 (D4 引脚)
-const uint16_t kIrLed = 5;  // 红外发射管接 GPIO5 (D1 引脚)
 
 DHT dht(DHTPIN, DHTTYPE);
 WiFiClient espClient;
 PubSubClient client(espClient);
-IRMitsubishiAC ac(kIrLed);  // 创建三菱空调控制对象
 
 // ====================== 用户配置区 ======================
 const char* ssid     = "ESP";         
@@ -56,33 +51,12 @@ void reconnect_mqtt() {
   }
 }
 
-// ⭐ 核心逻辑：空调自动控制函数
-void control_ac_by_temp(float temp) {
-  if (temp >= 18.0) {
-    Serial.println("[IR CONTROL] Temp >= 28C. Turning ON Mitsubishi AC (Cool, 26C)...");
-    ac.on();                             // 开启空调
-    ac.setFan(kMitsubishiAcFanAuto);       // 设置风速自动
-    ac.setMode(kMitsubishiAcCool);         // 设置制冷模式
-    ac.setTemp(26);                      // 设置目标温度 26 度
-    ac.send();                           // 发送红外信号！
-  } 
-  else if (temp <= 10.0) {
-    Serial.println("[IR CONTROL] Temp <= 24C. Turning OFF Mitsubishi AC...");
-    ac.off();                            // 关闭空调
-    ac.send();                           // 发送红外信号！
-  }
-}
-
 void setup() {
   Serial.begin(115200);
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, HIGH);
   
   dht.begin();      // 初始化温湿度
-  ac.begin();       // 初始化红外发射
-
-  // 默认先把空调状态设置为关机，防止乱发信号
-  ac.off(); 
   
   connect_wifi();
   client.setServer(mqtt_server, mqtt_port);
@@ -111,7 +85,7 @@ void loop() {
 
     Serial.printf("Sensor Data: Temp: %.1fC, Hum: %.1f%%\n", temp, hum);
 
-    // 1. 发送数据到华为云
+    // 发送数据到华为云
     char payload[256];
     snprintf(payload, sizeof(payload), 
              "{\"services\": [{\"service_id\": \"dht22\", \"properties\": {\"temp\": %.1f, \"hum\": %.1f}}]}", 
@@ -122,8 +96,5 @@ void loop() {
       Serial.println(" -> Cloud Publish Success!");
     }
     digitalWrite(LED_PIN, HIGH);
-
-    // 2. 根据温度控制空调
-    control_ac_by_temp(temp);
   }
 }
