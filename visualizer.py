@@ -72,31 +72,51 @@ def get_data():
         
     df_filtered = df_all.loc[mask]
     
-    # Downsample dynamically based on date range
+    # Custom Min-Max Envelope Downsampling and Gap Detection
     if not df_filtered.empty:
+        df_filtered = df_filtered[['Temperature', 'Humidity']].dropna()
         days = (df_filtered.index.max() - df_filtered.index.min()).days
-        if days > 14:
-            rule = '5min'
-        elif days > 3:
-            rule = '1min'
-        else:
-            rule = None # raw data for <= 3 days
-
-        if rule:
-            df_resampled = df_filtered[['Temperature', 'Humidity']].resample(rule).mean().dropna()
-        else:
-            df_resampled = df_filtered[['Temperature', 'Humidity']].dropna()
-            
-        df_resampled = df_resampled.round(1)
         
-        # Format for output
+        # 800 buckets (x2 points = 1600 points max)
+        target_points = 800
+        
+        if days <= 3 or len(df_filtered) <= target_points * 2:
+            df_sampled = df_filtered
+        else:
+            df_filtered = df_filtered.copy()
+            df_filtered['bucket'] = pd.cut(df_filtered.index, bins=target_points)
+            
+            # Find index of min and max temperature in each bucket
+            grouped = df_filtered.groupby('bucket', observed=False)['Temperature']
+            idx_min = grouped.idxmin().dropna()
+            idx_max = grouped.idxmax().dropna()
+            
+            # Combine indices, remove duplicates, and sort
+            sampled_indices = pd.Index(pd.concat([pd.Series(idx_min), pd.Series(idx_max)]).unique()).sort_values()
+            df_sampled = df_filtered.loc[sampled_indices].drop(columns=['bucket'])
+            
+        df_sampled = df_sampled.round(1)
+        
+        # Format for output and detect gaps
         result = []
-        for time, row in df_resampled.iterrows():
+        last_time = None
+        for time, row in df_sampled.iterrows():
+            if last_time is not None:
+                # If gap is larger than 1 hour, insert a null point to break the line
+                if (time - last_time).total_seconds() > 3600:
+                    gap_time = last_time + pd.Timedelta(seconds=1)
+                    result.append({
+                        'time': gap_time.strftime('%Y-%m-%d %H:%M:%S'),
+                        'temperature': None,
+                        'humidity': None
+                    })
             result.append({
                 'time': time.strftime('%Y-%m-%d %H:%M:%S'),
                 'temperature': row['Temperature'],
                 'humidity': row['Humidity']
             })
+            last_time = time
+            
         return jsonify(result)
     return jsonify([])
 
