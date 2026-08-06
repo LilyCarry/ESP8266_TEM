@@ -11,7 +11,10 @@ df_all = None
 def load_data():
     global df_all
     print("Loading and processing CSV data...")
-    all_files = sorted(glob.glob(os.path.join(DATA_DIR, "*.csv")))
+    all_files = sorted(glob.glob(os.path.join(DATA_DIR, "**", "*.csv"), recursive=True))
+    # Exclude combined.csv to prevent data duplication
+    all_files = [f for f in all_files if not f.endswith('combined.csv')]
+    
     df_list = []
     for f in all_files:
         try:
