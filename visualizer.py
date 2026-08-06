@@ -102,10 +102,15 @@ def get_data():
         # Format for output and detect gaps
         result = []
         last_time = None
+        
+        # The gap threshold must be larger than the resampling interval.
+        # Default is 3600 seconds (1 hour). If rule_minutes is large, use 1.5x the interval.
+        gap_threshold_seconds = max(3600, rule_minutes * 60 * 1.5) if rule_minutes else 3600
+        
         for time, row in df_sampled.iterrows():
             if last_time is not None:
-                # If gap is larger than 1 hour, insert a null point to break the line
-                if (time - last_time).total_seconds() > 3600:
+                # If gap is larger than the dynamic threshold, insert a null point to break the line
+                if (time - last_time).total_seconds() > gap_threshold_seconds:
                     gap_time = last_time + pd.Timedelta(seconds=1)
                     result.append({
                         'time': gap_time.strftime('%Y-%m-%d %H:%M:%S'),
