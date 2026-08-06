@@ -87,7 +87,7 @@ def get_data():
             df_filtered['bucket'] = pd.cut(df_filtered.index, bins=target_points)
             
             # Find index of min and max temperature in each bucket
-            grouped = df_filtered.groupby('bucket', observed=False)['Temperature']
+            grouped = df_filtered.groupby('bucket', observed=True)['Temperature']
             idx_min = grouped.idxmin().dropna()
             idx_max = grouped.idxmax().dropna()
             
