@@ -87,15 +87,15 @@ def get_data():
         days = span.total_seconds() / 86400.0
         
         if days > 30:
-            rule = '1h'
+            rule = '6h'
         elif days > 14:
-            rule = '30min'
+            rule = '3h'
         elif days > 7:
-            rule = '15min'
+            rule = '1h'
         elif days > 3:
-            rule = '5min'
+            rule = '30min'
         elif days > 1:
-            rule = '1min'
+            rule = '5min'
         else:
             rule = None
             
