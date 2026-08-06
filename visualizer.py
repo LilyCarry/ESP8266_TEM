@@ -86,22 +86,15 @@ def get_data():
         span = df_filtered.index.max() - df_filtered.index.min()
         days = span.total_seconds() / 86400.0
         
-        if days > 30:
-            rule = '6h'
-        elif days > 14:
-            rule = '3h'
-        elif days > 7:
-            rule = '1h'
-        elif days > 3:
-            rule = '30min'
-        elif days > 1:
-            rule = '5min'
-        else:
-            rule = None
-            
-        if rule:
+        # Linear LOD: Target ~200 points total regardless of zoom span
+        # total_minutes = days * 1440; rule = total_minutes / 200 = days * 7.2
+        rule_minutes = int(days * 7.2)
+        
+        if rule_minutes > 1:
+            rule = f'{rule_minutes}min'
             df_sampled = df_filtered.resample(rule).mean().dropna()
         else:
+            rule = None
             df_sampled = df_filtered
             
         df_sampled = df_sampled.round(1)
