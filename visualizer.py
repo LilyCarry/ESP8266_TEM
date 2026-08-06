@@ -66,34 +66,43 @@ def get_data():
         
     mask = pd.Series(True, index=df_all.index)
     if start_date:
-        mask = mask & (df_all['Date'] >= start_date)
+        try:
+            start_ts = pd.to_datetime(start_date)
+            mask = mask & (df_all.index >= start_ts)
+        except:
+            mask = mask & (df_all['Date'] >= start_date)
     if end_date:
-        mask = mask & (df_all['Date'] <= end_date)
-        
+        try:
+            end_ts = pd.to_datetime(end_date)
+            mask = mask & (df_all.index <= end_ts)
+        except:
+            mask = mask & (df_all['Date'] <= end_date)
+            
     df_filtered = df_all.loc[mask]
     
-    # Custom Min-Max Envelope Downsampling and Gap Detection
+    # Dynamic LOD Low-pass Filter and Gap Detection
     if not df_filtered.empty:
         df_filtered = df_filtered[['Temperature', 'Humidity']].dropna()
-        days = (df_filtered.index.max() - df_filtered.index.min()).days
+        span = df_filtered.index.max() - df_filtered.index.min()
+        days = span.total_seconds() / 86400.0
         
-        # 800 buckets (x2 points = 1600 points max)
-        target_points = 800
-        
-        if days <= 3 or len(df_filtered) <= target_points * 2:
-            df_sampled = df_filtered
+        if days > 30:
+            rule = '1h'
+        elif days > 14:
+            rule = '30min'
+        elif days > 7:
+            rule = '15min'
+        elif days > 3:
+            rule = '5min'
+        elif days > 1:
+            rule = '1min'
         else:
-            df_filtered = df_filtered.copy()
-            df_filtered['bucket'] = pd.cut(df_filtered.index, bins=target_points)
+            rule = None
             
-            # Find index of min and max temperature in each bucket
-            grouped = df_filtered.groupby('bucket', observed=True)['Temperature']
-            idx_min = grouped.idxmin().dropna()
-            idx_max = grouped.idxmax().dropna()
-            
-            # Combine indices, remove duplicates, and sort
-            sampled_indices = pd.Index(pd.concat([pd.Series(idx_min), pd.Series(idx_max)]).unique()).sort_values()
-            df_sampled = df_filtered.loc[sampled_indices].drop(columns=['bucket'])
+        if rule:
+            df_sampled = df_filtered.resample(rule).mean().dropna()
+        else:
+            df_sampled = df_filtered
             
         df_sampled = df_sampled.round(1)
         
