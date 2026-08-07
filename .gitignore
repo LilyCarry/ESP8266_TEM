@@ -46,3 +46,6 @@ Thumbs.db
 # Project specific junk
 .playwright-mcp/
 *.log
+
+# AI Watchdog
+ai_watchdog.py
